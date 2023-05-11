@@ -9,6 +9,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -21,7 +22,8 @@ import java.util.List;
 
 
 @Entity
-@Table(name = "persons")
+@Table(name = "persons",
+        uniqueConstraints = @UniqueConstraint(columnNames = "email", name = "persons_email_uq"))
 @Getter
 @Setter
 @NoArgsConstructor
@@ -53,9 +55,9 @@ public class Person {
     private List<Note> notes = new ArrayList<>();
 
 
-    @JsonManagedReference // only for test purpose when we work in controller with entities (usually we use Dto)
-    @OneToMany(mappedBy = "person", cascade = CascadeType.ALL)
-    private List<Task> tasks = new ArrayList<>();
+//    @JsonManagedReference // only for test purpose when we work in controller with entities (usually we use Dto)
+//    @OneToMany(mappedBy = "person", cascade = CascadeType.ALL)
+//    private List<Task> tasks = new ArrayList<>();
 
     public void addNote(Note note) {
         note.setPerson(this);
@@ -67,14 +69,14 @@ public class Person {
         note.setPerson(null);
     }
 
-    public void addTask(Task task) {
-        task.setPerson(this);
-        this.tasks.add(task);
-    }
-
-    public void removeTask(Task task) {
-        this.tasks.remove(task);
-        task.setPerson(null);
-    }
+//    public void addTask(Task task) {
+//        task.setPerson(this);
+//        this.tasks.add(task);
+//    }
+//
+//    public void removeTask(Task task) {
+//        this.tasks.remove(task);
+//        task.setPerson(null);
+//    }
 
 }

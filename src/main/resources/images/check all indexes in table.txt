@@ -1,0 +1,5 @@
+-- to see all indexes in table
+
+SELECT indexname, indexdef
+FROM pg_indexes
+WHERE tablename = 'persons';

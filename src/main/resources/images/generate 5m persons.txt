@@ -1,0 +1,11 @@
+INSERT INTO persons (first_name, last_name, age, email, created_at)
+SELECT
+        'First Name ' || id,
+        'Last Name ' || id,
+        floor(random() * 80 + 20),
+        concat('First Name', id, '@example.com'),
+        now() - INTERVAL '1 year' * floor(random() * 5) -
+        INTERVAL '1 month' * floor(random() * 12) -
+        INTERVAL '1 day' * floor(random() * 365)
+FROM generate_series(1, 5000000) as id;
+

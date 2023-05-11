@@ -1,0 +1,27 @@
+-- should create from 1 to 4 tasks for each person
+
+INSERT INTO tasks (person_id, title, description, created_at)
+SELECT p.id,
+       'Note title  ' || t,
+       'Note description ' || t,
+       now() - INTERVAL '1 year' * floor(random() * 5) -
+       INTERVAL '1 month' * floor(random() * 12) -
+       INTERVAL '1 day' * floor(random() * 365)
+FROM persons p
+         CROSS JOIN LATERAL generate_series(1, floor(random() * 4)::int + 1) s(t)
+ORDER BY p.id;
+
+-- it may not work so use this
+
+INSERT INTO task_list (user_id, title, description, created_at)
+SELECT
+    rv.id,
+    'some_title',
+    'some_description',
+    now() - INTERVAL '1 year' * floor(random() * 5) -
+    INTERVAL '1 month' * floor(random() * 12) -
+    INTERVAL '1 day' * floor(random() * 365)
+FROM
+    random_vals rv
+        JOIN generate_series(1, (SELECT max(num_vals) FROM random_vals)) gs
+             ON gs <= rv.num_vals;

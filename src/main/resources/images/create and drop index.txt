@@ -1,0 +1,4 @@
+-- lets create index for FK
+create index notes_person_id_idx on notes(person_id);
+
+drop index notes_person_id_idx;

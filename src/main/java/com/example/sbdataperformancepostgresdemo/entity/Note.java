@@ -3,6 +3,7 @@ package com.example.sbdataperformancepostgresdemo.entity;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -42,7 +43,7 @@ public class Note {
 
     @JsonBackReference // only for test purpose when we work in controller with entities (usually we use Dto)
     @ManyToOne(optional = false) // it means that the relationship is mandatory and the foreign key cannot be null
-    @JoinColumn(name = "person_id")
+    @JoinColumn(name = "person_id", foreignKey = @ForeignKey(name = "notes_person_id_fk"))
     private Person person;
 
 }

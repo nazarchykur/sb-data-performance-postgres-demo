@@ -1,0 +1,3 @@
+select currval('notes_id_seq');
+select currval('persons_id_seq');
+select currval('tasks_id_seq');
