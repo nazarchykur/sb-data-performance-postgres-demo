@@ -1,0 +1,15 @@
+server:
+  port: 9001
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/pg-db-demo
+    username: postgres
+    password: pass
+  jpa:
+    hibernate:
+      ddl-auto: update #create-drop #update #create
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true

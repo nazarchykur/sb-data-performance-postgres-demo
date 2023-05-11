@@ -1,0 +1,172 @@
+select count(id) from persons; -- 3_089_502  кількість рядків у таблиці
+select count(id) from notes; -- 5_559_373
+select count(id) from tasks; -- 7_723_420
+
+
+
+
+
+-- PostgreSQL створює індекси по замовчуванню для первинного ключа (PK) та унікальних обмежень (UNIQUE constraints).
+-- Це допомагає забезпечити швидкий доступ до даних, які мають унікальні значення, а також забезпечує швидкий доступ до
+-- рядків таблиці за значенням первинного ключа.
+
+-- Згідно з кращими практиками, ви можете додати індекси до інших колонок, які використовуються часто в запитах, щоб
+-- покращити продуктивність запитів. Наприклад, якщо ви часто виконуєте запити, які фільтрують рядки за значенням певної
+-- колонки, то додавання індексу до цієї колонки може допомогти покращити продуктивність запитів.
+
+-- Однак, додавання занадто багато індексів може призвести до погіршення продуктивності, оскільки це може збільшити час
+-- на вставку, оновлення та видалення даних. Тому, перед додаванням індексів, важливо ретельно проаналізувати запити,
+-- які використовуються в додатку, та визначити, які колонки потребують індексів для покращення продуктивності.
+
+-- Для FK (зовнішніх ключів) PostgreSQL НЕ створює індекси по замовчуванню. При потребі самі маємо додавати
+
+-- Висновок тут полягає в тому, що ми не повинні без розбору створювати індекси для всіх FK, оскільки багато з них просто
+-- не використовуватимуться або використовуватимуться настільки рідко, що не варті витрат.
+
+
+
+
+
+-- search by fields with / without index
+select * from persons where last_name='Last Name 1';         -- 200ms
+select * from persons where last_name='Last Name 3000000';   -- 200ms
+select * from persons where email='Email 3000000@gmail.com'; -- 20ms
+select * from persons where id=3000000;                      -- 20ms
+select * from persons where id=10;                           -- 20ms
+
+-- пошук по колонці яка не має індексу
+select * from persons where last_name IN (
+    'Last Name 1000000',
+    'Last Name 2000000',
+    'Last Name 3000000',
+    'Last Name 2500000',
+    'Last Name 2800000'
+    ); -- 380ms
+
+-- пошук по колонці яка має індекс (тобто це колонки id, unique column like email in this example)
+select * from persons where id IN (
+    1000000,
+    2000000,
+    3000000,
+    2500000,
+    2800000
+    ); -- 25ms
+
+-- пошук по колонці яка має індекс (тобто це колонки id, unique column like email in this example)
+select * from persons where email IN (
+    'Email 3000000@gmail.com',
+    'Email 20001111@gmail.com',
+    'Email 100000@gmail.com',
+    'Email 111@gmail.com',
+    'Email 1@gmail.com'
+    ); -- 25ms
+
+
+create index persons_last_name_idx ON persons(last_name);
+
+select * from persons where last_name IN (
+    'Last Name 1000000',
+    'Last Name 2000000',
+    'Last Name 3000000',
+    'Last Name 2500000',
+    'Last Name 2800000'
+    ); -- before added index = 380ms, after added index = 25ms
+
+
+
+
+
+-- У PostgreSQL є кілька типів індексів, а саме:
+--
+--   1. B-tree індекси - це тип індексу, який використовується за замовчуванням в PostgreSQL. Вони підтримують швидкий пошук
+--      за допомогою операцій порівняння, таких як <, <=, =, >=, >, а також швидкий пошук за допомогою операцій BETWEEN та IN.
+--
+--   2. Hash індекси - це тип індексу, який використовує хеш-функцію для швидкого пошуку даних. Вони підтримують швидкий
+--      пошук за допомогою операції рівності (=), але не підтримують операції порівняння, BETWEEN та IN.
+--
+--   3. GiST індекси - це тип індексу, який використовується для швидкого пошуку даних за допомогою геометричних операцій,
+--      таких як перетин, об'єднання, включення та відключення.
+--
+--   4. SP-GiST індекси - це тип індексу, який використовується для швидкого пошуку даних за допомогою ієрархічних
+--      структур даних, таких як дерева.
+--
+--   5. GIN індекси - це тип індексу, який використовується для швидкого пошуку даних за допомогою повнотекстового
+--      пошуку та пошуку за маскою.
+--
+--   Щодо індексів, які створює PostgreSQL по замовчуванню, то це індекси для первинного ключа (PK) та унікальних
+--   обмежень (UNIQUE constraints). Ці індекси допомагають забезпечити швидкий доступ до даних, які мають унікальні
+--   значення, а також забезпечують швидкий доступ до рядків таблиці за значенням первинного ключа.
+--
+
+
+
+
+
+drop index persons_last_name_idx;
+create index persons_last_name_idx ON persons using hash(last_name);
+
+select * from persons where last_name > 'Last Name 2500000' order by last_name; -- 1s 400ms
+
+
+drop index persons_last_name_idx;
+create index persons_last_name_idx ON persons using btree(last_name);
+
+select * from persons where last_name > 'Last Name 2500000' order by last_name; -- 25ms
+
+
+
+
+
+-- щоб подивитися який тип індексів є у таблиці
+SELECT indexname, indexdef
+FROM pg_indexes
+WHERE tablename = 'persons';
+
+
+
+
+
+-- at this point notes (person_id) does not have index
+SELECT * FROM persons LEFT JOIN notes n on persons.id = n.person_id; -- 500ms
+
+create index notes_person_id_idx on notes(person_id);
+
+SELECT * FROM persons LEFT JOIN notes n on persons.id = n.person_id; -- 30ms
+
+SELECT * FROM persons p LEFT JOIN notes n on p.id = n.person_id
+where p.last_name in (
+                      'Last Name 10',
+                      'Last Name 2000',
+                      'Last Name 300000',
+                      'Last Name 2500000',
+                      'Last Name 2800000'
+    ); -- 30ms
+
+SELECT indexname, indexdef
+FROM pg_indexes
+WHERE tablename = 'notes'; -- notes, persons
+
+drop index persons_last_name_idx;
+drop index notes_person_id_idx;
+
+SELECT * FROM persons p LEFT JOIN notes n on p.id = n.person_id
+where p.last_name in (
+                      'Last Name 10',
+                      'Last Name 2000',
+                      'Last Name 300000',
+                      'Last Name 2500000',
+                      'Last Name 2800000'
+    ); -- 650ms
+
+create index persons_last_name_idx on persons(last_name);
+create index notes_person_id_idx on notes(person_id);
+
+SELECT * FROM persons p LEFT JOIN notes n on p.id = n.person_id
+where p.last_name in (
+                      'Last Name 10',
+                      'Last Name 2000',
+                      'Last Name 300000',
+                      'Last Name 2500000',
+                      'Last Name 2800000'
+    );
+
