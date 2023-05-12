@@ -80,7 +80,75 @@ public class PersonController {
         return personRepository.findAllByIdBetweenFetchNotes(startId, endId);
     }
 
+    /*
+    Hibernate не дозволяє робити ще один fetch, бо впаде з помилкою
+        org.hibernate.loader.MultipleBagFetchException: cannot simultaneously fetch multiple bags:
 
+ */
+//    @GetMapping("/using-fetch-notes-and-tasks/{startId}/{endId}")
+//    public List<Person> getPersonsFetchNotesAndTasks(@PathVariable Long startId, @PathVariable Long endId) {
+//        return personRepository.findAllByIdBetweenFetchNotesAndTasks(startId, endId);
+//    }
+
+    /*
+        коли потрібно підтягнути кілька ентіті по зв'язу, тобто так як у нашому прикладі
+        потрібно підтягнути і нотатки і таски до персона
+     */
+    /*
+        1. spring.jpa.open-in-view=true щоб працювала лінива загрузка у контролері
+            тоді у цьому прикладі персон з нотатками підтягнеться одним запитом, але для кожного персона піде
+            ще +1 запит, щоб взяти таски
+
+            http://localhost:9001/persons/using-fetch-and-lazy-get-tasks/1/100    270ms - first call, 100ms - second call
+            http://localhost:9001/persons/using-fetch-and-lazy-get-tasks/1/1000   500ms
+            http://localhost:9001/persons/using-fetch-and-lazy-get-tasks/1/10000  4.4s
+     */
+    @GetMapping("/using-fetch-and-lazy-get-tasks/{startId}/{endId}")
+    public List<Person> getPersonsFetchNotesAndLazyGetTasks(@PathVariable Long startId, @PathVariable Long endId) {
+        return personRepository.findAllByIdBetweenFetchNotes(startId, endId);
+    }
+
+
+    /*
+       2. spring.jpa.open-in-view=true щоб працювала лінива загрузка у контролері
+            тоді у цьому прикладі персон з нотатками підтягнеться одним запитом, але для кожного персона піде
+            ще +1 запит щоб взяти таски але запит піде пачками по 100 а не по 1
+
+            перша оптимізація, яку можна додати це
+                    @BatchSize(size = 100) на наші таски у ентіті персон, щоб було пачками по 100
+
+            http://localhost:9001/persons/using-fetch-and-batch-get-tasks/1/100    170ms
+            http://localhost:9001/persons/using-fetch-and-batch-get-tasks/1/1000   80ms
+            http://localhost:9001/persons/using-fetch-and-batch-get-tasks/1/10000  800ms
+     */
+    @GetMapping("/using-fetch-and-batch-get-tasks/{startId}/{endId}")
+    public List<Person> getPersonsFetchNotesAndBatchGetTasks(@PathVariable Long startId, @PathVariable Long endId) {
+        return personRepository.findAllByIdBetweenFetchNotes(startId, endId);
+    }
+
+    /*
+        3. створюємо CustomRepository, і його імплементацію, де через EntityManager створюємо 2 запити
+           з left join, у яких вже буде вигружено все, що потрбіно
+
+        звернуть увагу, що ми тут для Hibernate вказуємо distinct, щоб він поскладав всі потрбні ентіті по зв'язкам до
+        нашої ентіті, але у БД не потрбіно робити distinct, бо execute plan такого запиту покаже, що БД спершу має
+        відсорутвати по порядку, а потім робити всі інші дії
+
+        Hibernate 6 auto-deduplication
+        Hibernate 6 can deduplicate parent entity references automatically, so you don’t need to use the DISTINCT keyword,
+        as it were the case with Hibernate 5:
+            because we need use something like: .setHint("hibernate.query.passDistinctThrough", false)
+                                                .setHint(QueryHints.HINT_PASS_DISTINCT_THROUGH, false)
+
+            http://localhost:9001/persons/using-fetch-and-lazy-get-tasks/1/100    170ms- first call, 20ms - second call
+            http://localhost:9001/persons/using-fetch-and-lazy-get-tasks/1/1000   80ms
+            http://localhost:9001/persons/using-fetch-and-lazy-get-tasks/1/10000  1.7s
+     */
+
+    @GetMapping("/fetch-notes-and-tasks/{startId}/{endId}")
+    public List<Person> findAllInRangeFetchNotesAndTasks(@PathVariable Long startId, @PathVariable Long endId) {
+        return personRepository.findAllInRangeFetchNotesAndTasks(startId, endId);
+    }
 //    @Transactional
 //    @PostConstruct
 //    public void generateData() {

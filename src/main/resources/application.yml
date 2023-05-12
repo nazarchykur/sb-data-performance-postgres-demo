@@ -8,7 +8,7 @@ spring:
     password: pass
   jpa:
     hibernate:
-      ddl-auto: none #create-drop #update #create #none
+      ddl-auto: validate #create-drop #update #create #none
     show-sql: true
     properties:
       hibernate:
